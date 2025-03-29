@@ -271,7 +271,7 @@ export class RelationGraph<
    * @param relationName - The name of the relation to get.
    * @returns The relation object if found, undefined otherwise.
    */
-  public getSpecificRelation<
+  public getRelation<
     K extends keyof TResourceMap,
     RelName extends keyof TRelations[K]['relations']
   >(

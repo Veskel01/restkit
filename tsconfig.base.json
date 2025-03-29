@@ -9,7 +9,6 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
-    "sourceMap": true,
     "allowJs": true,
     "checkJs": true,
     "incremental": false,
@@ -29,7 +28,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "strictBindCallApply": true,
+    "strictBindCallApply": true
   },
   "include": ["${configDir}/src/**/*"],
   "exclude": [

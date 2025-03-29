@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [tsConfigPaths()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+      '@': path.resolve(__dirname, './src')
+    }
   },
   cacheDir: './.vitest/cache',
   test: {
@@ -17,7 +17,7 @@ export default defineConfig({
     includeSource: ['**/*.ts'],
     outputFile: {
       json: './.vitest/output.json',
-      html: './.vitest/output.html',
+      html: './.vitest/output.html'
     },
     reporters: ['default'],
     coverage: {
@@ -28,34 +28,34 @@ export default defineConfig({
         branches: 80,
         functions: 80,
         lines: 80,
-        statements: 80,
-      },
+        statements: 80
+      }
     },
     pool: 'forks',
     poolOptions: {
       threads: {
-        singleThread: false,
+        singleThread: false
       },
       forks: {
-        isolate: true,
-      },
+        isolate: true
+      }
     },
     retry: 2,
     testTimeout: 10_000,
     hookTimeout: 10_000,
     sequence: {
       hooks: 'stack',
-      shuffle: false,
+      shuffle: false
     },
     typecheck: {
       enabled: true,
-      ignoreSourceErrors: false,
+      ignoreSourceErrors: false
     },
     // TODO - benchmark
     unstubEnvs: true,
-    dangerouslyIgnoreUnhandledErrors: false,
+    dangerouslyIgnoreUnhandledErrors: false
   },
   esbuild: {
-    keepNames: true,
-  },
+    keepNames: true
+  }
 });
