@@ -1,0 +1,15 @@
+{
+  "name": "@restkit/core",
+  "version": "0.0.1",
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test:unit": "vitest --run --project unit"
+  }
+}

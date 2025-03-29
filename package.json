@@ -1,0 +1,30 @@
+{
+  "name": "restkit",
+  "private": true,
+  "packageManager": "pnpm@10.7.0",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "ultracite lint",
+    "format": "ultracite format",
+    "typecheck": "turbo typecheck",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "check-types": "turbo run check-types",
+    "deps:check": "pnpm outdated -r --no-optional",
+    "deps:update": "pnpm update -r -L",
+    "test:unit": "turbo run test:unit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@commitlint/cli": "19.8.0",
+    "@commitlint/config-conventional": "19.8.0",
+    "@vitest/coverage-v8": "3.0.9",
+    "husky": "9.1.7",
+    "tsup": "8.4.0",
+    "turbo": "2.4.4",
+    "typescript": "5.8.2",
+    "ultracite": "4.2.0",
+    "vite-tsconfig-paths": "5.1.4",
+    "vitest": "3.0.9"
+  }
+}
