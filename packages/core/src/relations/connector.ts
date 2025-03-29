@@ -1,14 +1,13 @@
 import { RelationCardinality, type Relationship } from '../models/relation';
 import type { ResourceMap } from '../models/resource';
 
+// TODO - add support for relationship options
+
 /**
- * Represents a temporary relationship draft used to configure
- * the target resource and cardinality before assigning a name via `.as()`.
+ * Represents a relationship connection between two resources.
  *
- * This class is not meant to be used directly in resource definitions —
- * it serves as an intermediate step before finalizing a relationship.
  */
-class RelationshipDraft<
+export class RelationshipConnection<
   TResourceMap extends ResourceMap,
   TTarget extends keyof TResourceMap & string,
   TCardinality extends RelationCardinality
@@ -46,7 +45,7 @@ class RelationshipDraft<
  * 1. Call `.one()` or `.many()` to specify the target and cardinality.
  * 2. Call `.as(name)` on the resulting descriptor to assign a name.
  */
-export class ResourceLinker<TResourceMap extends ResourceMap> {
+export class RelationshipConnector<TResourceMap extends ResourceMap> {
   private readonly resourceMap: TResourceMap;
 
   public constructor(resourceMap: TResourceMap) {
@@ -62,12 +61,12 @@ export class ResourceLinker<TResourceMap extends ResourceMap> {
    */
   public one<TTarget extends keyof TResourceMap & string>(
     target: TTarget
-  ): RelationshipDraft<TResourceMap, TTarget, RelationCardinality.ONE> {
+  ): RelationshipConnection<TResourceMap, TTarget, RelationCardinality.ONE> {
     if (!this.resourceMap[target]) {
       throw new Error(`Resource "${target}" not found in resource map`);
     }
 
-    return new RelationshipDraft(target, RelationCardinality.ONE);
+    return new RelationshipConnection(target, RelationCardinality.ONE);
   }
 
   /**
@@ -79,11 +78,11 @@ export class ResourceLinker<TResourceMap extends ResourceMap> {
    */
   public many<TTarget extends keyof TResourceMap & string>(
     target: TTarget
-  ): RelationshipDraft<TResourceMap, TTarget, RelationCardinality.MANY> {
+  ): RelationshipConnection<TResourceMap, TTarget, RelationCardinality.MANY> {
     if (!this.resourceMap[target]) {
       throw new Error(`Resource "${target}" not found in resource map`);
     }
 
-    return new RelationshipDraft(target, RelationCardinality.MANY);
+    return new RelationshipConnection(target, RelationCardinality.MANY);
   }
 }

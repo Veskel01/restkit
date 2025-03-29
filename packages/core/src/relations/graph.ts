@@ -22,7 +22,7 @@ import {
   combineResources
 } from '../utils/combine-resources';
 import { KEY_PATH_SEPARATOR, createKeyPath } from '../utils/key-path';
-import { ResourceLinker } from './linker';
+import { RelationshipConnector } from './connector';
 
 interface ResourceWithRelations<
   R extends AnyResource,
@@ -203,7 +203,7 @@ export class RelationGraph<
       resourceMap,
       relationshipMap
     );
-    this.relations = relations as TRelations;
+    this.relations = relations;
     this.adjacencyList = adjacencyList;
   }
 
@@ -217,14 +217,14 @@ export class RelationGraph<
   >(
     resourceMap: TResourceMap,
     createRelationships: (
-      linker: ResourceLinker<TResourceMap>
+      connector: RelationshipConnector<TResourceMap>
     ) => TRelationshipMap
   ): RelationGraph<
     TResourceMap,
     ConnectedRelations<TResourceMap, TRelationshipMap>
   > {
-    const linker = new ResourceLinker(resourceMap);
-    const relationships = createRelationships(linker);
+    const connector = new RelationshipConnector(resourceMap);
+    const relationships = createRelationships(connector);
 
     return new RelationGraph(resourceMap, relationships);
   }
@@ -469,10 +469,7 @@ export class RelationGraph<
     resourceMap: ResourceMap,
     relationshipMap: ArrayRelationshipMap<ResourceMap>
   ): {
-    relations: Record<
-      string,
-      ResourceWithRelations<AnyResource, Record<string, AnyRelation>>
-    >;
+    relations: TRelations;
     adjacencyList: Map<string, Set<string>>;
   } {
     const relations: Record<
@@ -531,7 +528,10 @@ export class RelationGraph<
       };
     }
 
-    return { relations, adjacencyList };
+    return {
+      relations: relations as TRelations,
+      adjacencyList
+    };
   }
 }
 
@@ -551,7 +551,9 @@ export function createRelationGraph<
     : TResources
 >(
   resources: TResources,
-  createRelationships: (linker: ResourceLinker<TResourceMap>) => TRelations
+  createRelationships: (
+    connector: RelationshipConnector<TResourceMap>
+  ) => TRelations
 ): RelationGraph<TResourceMap, ConnectedRelations<TResourceMap, TRelations>> {
   if (Array.isArray(resources)) {
     return RelationGraph.create(

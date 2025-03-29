@@ -12,11 +12,12 @@ export * from './attributes/tuple';
 export * from './models/relation';
 export * from './models/resource';
 
+export * from './relations/connector';
 export * from './relations/graph';
-export * from './relations/linker';
 
 export * from './types/factory.type';
 export * from './types/utility.type';
 
 export * from './utils/combine-resources';
 export * from './utils/key-path';
+
