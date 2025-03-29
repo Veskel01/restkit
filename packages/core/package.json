@@ -1,5 +1,9 @@
 {
   "name": "@restkit/core",
+  "author": {
+    "name": "RestKit"
+  },
+  "license": "MIT",
   "type": "module",
   "version": "0.0.1",
   "description": "RestKit core package",
