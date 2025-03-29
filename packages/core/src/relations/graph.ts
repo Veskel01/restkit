@@ -36,7 +36,7 @@ export type ArrayRelationshipMap<TResourceMap extends ResourceMap> = {
   [K in keyof TResourceMap]?: AnyRelationship[];
 };
 
-export type DefinedRelations<
+export type ConnectedRelations<
   TResourceMap extends ResourceMap,
   TRelationshipMap extends ArrayRelationshipMap<TResourceMap>
 > = {
@@ -69,10 +69,10 @@ export type DefinedRelations<
   >;
 };
 
-export type AnyDefinedRelations<
+export type AnyConnectedRelations<
   TResourceMap extends ResourceMap = ResourceMap
   // biome-ignore lint/suspicious/noExplicitAny: Required for proper type matching
-> = DefinedRelations<TResourceMap, ArrayRelationshipMap<TResourceMap> & any>;
+> = ConnectedRelations<TResourceMap, ArrayRelationshipMap<TResourceMap> & any>;
 
 /**
  * Infers the complete resource type with its nested relations up to a specified depth.
@@ -133,7 +133,7 @@ export type InferResourceWithRelations<
  */
 type HasRelations<
   TResourceName extends keyof TRelations,
-  TRelations extends DefinedRelations<
+  TRelations extends ConnectedRelations<
     ResourceMap,
     ArrayRelationshipMap<ResourceMap>
   >
@@ -146,7 +146,7 @@ type HasRelations<
  * Returns never if the resource has no relations
  */
 export type ResourceRelationPaths<
-  TRelations extends AnyDefinedRelations,
+  TRelations extends AnyConnectedRelations,
   TResourceName extends keyof TRelations,
   TDepth extends number = 4
 > = HasRelations<TResourceName, TRelations> extends false
@@ -187,7 +187,7 @@ export type ResourceRelationPaths<
  */
 export class RelationGraph<
   TResourceMap extends ResourceMap,
-  TRelations extends AnyDefinedRelations<TResourceMap>
+  TRelations extends AnyConnectedRelations<TResourceMap>
 > {
   /** Complete mapping of each resource to its relations */
   public readonly relations: Readonly<TRelations>;
@@ -209,7 +209,7 @@ export class RelationGraph<
     ) => TRelationshipMap
   ): RelationGraph<
     TResourceMap,
-    DefinedRelations<TResourceMap, TRelationshipMap>
+    ConnectedRelations<TResourceMap, TRelationshipMap>
   > {
     const linker = new ResourceLinker(resourceMap);
     const relationships = createRelationships(linker);
@@ -552,7 +552,7 @@ export function createRelationGraph<
 >(
   resources: TResources,
   createRelationships: (linker: ResourceLinker<TResourceMap>) => TRelations
-): RelationGraph<TResourceMap, DefinedRelations<TResourceMap, TRelations>> {
+): RelationGraph<TResourceMap, ConnectedRelations<TResourceMap, TRelations>> {
   if (Array.isArray(resources)) {
     return RelationGraph.create(
       combineResources(...resources),
