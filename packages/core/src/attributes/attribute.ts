@@ -1,3 +1,6 @@
+import type { Cloneable } from '../types/factory.type';
+import type { MakeReadonly, NullishIf } from '../types/utility.type';
+
 /**
  * Enumeration of all supported attribute types
  */
@@ -21,19 +24,22 @@ export interface AttributeFlags {
   sortable: boolean;
   optional: boolean;
   nullable: boolean;
+  readonly: boolean;
 }
 
-type DefaultFlags = {
-  selectable: true;
-  filterable: true;
-  sortable: true;
-  optional: false;
-  nullable: false;
-};
+const DEFAULT_FLAGS = {
+  selectable: true,
+  filterable: true,
+  sortable: true,
+  optional: false,
+  nullable: false,
+  readonly: false
+} as const;
 
 // TODO
 export interface AttributeMetadata<TOutput> {
   description?: string;
+  defaultValue?: TOutput;
 }
 
 /**
@@ -52,23 +58,23 @@ export type AnyAttribute = Attribute<
   AttributeFlags
 >;
 
-export type InferAttributeOutput<T extends AnyAttribute> = T['_flags'] extends {
-  nullable: true;
-  optional: true;
-}
-  ? T['_output'] | null | undefined
-  : T['_flags'] extends { nullable: true }
-    ? T['_output'] | null
-    : T['_flags'] extends { optional: true }
-      ? T['_output'] | undefined
-      : T['_output'];
+/**
+ * Extracts the output type from an attribute
+ */
+export type InferAttributeOutput<T extends AnyAttribute> = T['_output'];
+
+/**
+ * Extracts the flags configuration from an attribute
+ */
+export type InferAttributeFlags<T extends AnyAttribute> = T['_flags'];
 
 export class Attribute<
   TType extends AttributeType = AttributeType,
   TOutput = unknown,
   TDef extends object = object,
-  TFlags extends AttributeFlags = DefaultFlags
-> {
+  TFlags extends AttributeFlags = typeof DEFAULT_FLAGS
+> implements Cloneable<Attribute<TType, TOutput, TDef, TFlags>>
+{
   /**
    * Defines the attribute type.
    * @internal
@@ -102,23 +108,19 @@ export class Attribute<
   public constructor({
     def,
     type,
-    flags = {
-      filterable: true,
-      selectable: true,
-      sortable: true,
-      nullable: false,
-      optional: false
-    } as TFlags
+    flags = DEFAULT_FLAGS as TFlags,
+    meta = {} as AttributeMetadata<TOutput>
   }: {
     def: TDef;
     type: TType;
     flags?: TFlags;
+    meta?: AttributeMetadata<TOutput>;
   }) {
     this._type = type;
     this._def = def;
     this._flags = flags;
     this._output = {} as TOutput;
-    this._meta = {};
+    this._meta = meta;
   }
 
   /**
@@ -131,140 +133,150 @@ export class Attribute<
   }
 
   /**
+   * Sets the default value for the attribute.
+   * This value will be used if no value is provided during attribute creation.
+   */
+  public defaultValue(value: TOutput): this {
+    this._meta.defaultValue = value;
+    return this;
+  }
+
+  /**
    * Controls whether this attribute can be selected in query operations.
    * When set to false, prevents including this field in query results.
    */
-  public selectable<const V extends boolean>(
-    value: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'selectable', V>>;
-  public selectable(): Attribute<
-    TType,
-    TOutput,
-    TDef,
-    SetFlag<TFlags, 'selectable', true>
-  >;
-  public selectable<const V extends boolean = true>(
-    value?: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'selectable', V>> {
+  public selectable<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'selectable', T>> {
     return new Attribute({
       def: this._def,
       type: this._type,
-      flags: {
-        ...this._flags,
-        selectable: value === undefined ? true : value
-      }
-    }) as Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'selectable', V>>;
+      flags: { ...this._flags, selectable: value }
+    });
   }
 
   /**
    * Controls whether this attribute can be used in filter expressions.
    * When set to false, prevents using this field in where clauses and filter operations.
    */
-  public filterable<const V extends boolean>(
-    value: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'filterable', V>>;
-  public filterable(): Attribute<
-    TType,
-    TOutput,
-    TDef,
-    SetFlag<TFlags, 'filterable', true>
-  >;
-  public filterable<const V extends boolean = true>(
-    value?: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'filterable', V>> {
+  public filterable<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'filterable', T>> {
     return new Attribute({
       def: this._def,
       type: this._type,
-      flags: {
-        ...this._flags,
-        filterable: value === undefined ? true : value
-      }
-    }) as Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'filterable', V>>;
+      flags: { ...this._flags, filterable: value }
+    });
   }
 
   /**
    * Controls whether this attribute can be used in sorting operations.
    * When set to false, prevents ordering by this field in queries.
    */
-  public sortable<const V extends boolean>(
-    value: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'sortable', V>>;
-  public sortable(): Attribute<
-    TType,
-    TOutput,
-    TDef,
-    SetFlag<TFlags, 'sortable', true>
-  >;
-  public sortable<const V extends boolean = true>(
-    value?: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'sortable', V>> {
+
+  public sortable<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'sortable', T>> {
     return new Attribute({
       def: this._def,
       type: this._type,
-      flags: {
-        ...this._flags,
-        sortable: value === undefined ? true : value
-      }
-    }) as Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'sortable', V>>;
+      flags: { ...this._flags, sortable: value }
+    });
   }
 
   /**
    * Marks the attribute as optional, allowing the field to be undefined.
    * Affects both type inference and validation during schema operations.
    */
-  public optional<const V extends boolean>(
-    value: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'optional', V>>;
-  public optional(): Attribute<
+  public optional<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<
     TType,
-    TOutput,
+    NullishIf<T, TOutput, undefined>,
     TDef,
-    SetFlag<TFlags, 'optional', true>
-  >;
-  public optional<const V extends boolean = true>(
-    value?: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'optional', V>> {
+    SetFlag<TFlags, 'optional', T>
+  > {
     return new Attribute({
       def: this._def,
       type: this._type,
-      flags: {
-        ...this._flags,
-        optional: value === undefined ? true : value
-      }
-    }) as Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'optional', V>>;
+      flags: { ...this._flags, optional: value }
+    });
   }
 
   /**
    * Marks the attribute as nullable, allowing null values.
    * Affects both type inference and validation during schema operations.
    */
-  public nullable<const V extends boolean>(
-    value: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'nullable', V>>;
-  public nullable(): Attribute<
+  public nullable<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<
     TType,
-    TOutput,
+    NullishIf<T, TOutput>,
     TDef,
-    SetFlag<TFlags, 'nullable', true>
-  >;
-  public nullable<const V extends boolean = true>(
-    value?: V
-  ): Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'nullable', V>> {
+    SetFlag<TFlags, 'nullable', T>
+  > {
     return new Attribute({
       def: this._def,
       type: this._type,
-      flags: {
-        ...this._flags,
-        nullable: value === undefined ? true : value
-      }
-    }) as Attribute<TType, TOutput, TDef, SetFlag<TFlags, 'nullable', V>>;
+      flags: { ...this._flags, nullable: value }
+    });
+  }
+
+  /**
+   * Marks the attribute as nullable, allowing null or undefined values.
+   * This is a shortcut for calling `nullable(true)` and `optional(true)`.
+   */
+  public nullish<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<
+    TType,
+    TOutput | null | undefined,
+    TDef,
+    SetFlag<TFlags, 'nullable', T>
+  > {
+    return new Attribute({
+      def: this._def,
+      type: this._type,
+      flags: { ...this._flags, nullable: value }
+    });
+  }
+
+  /**
+   * Marks the attribute as readonly, preventing modifications.
+   */
+  public readonly<const T extends boolean = true>(
+    value: T = true as T
+  ): Attribute<
+    TType,
+    MakeReadonly<TOutput>,
+    TDef,
+    SetFlag<TFlags, 'readonly', T>
+  > {
+    return new Attribute({
+      def: this._def,
+      type: this._type,
+      flags: { ...this._flags, readonly: value }
+    });
+  }
+
+  /**
+   * Clones the current attribute, creating a new independent instance
+   * with the same configuration. Useful for creating variations of an attribute.
+   * @returns A new attribute instance with identical configuration
+   */
+  public clone(): Attribute<TType, TOutput, TDef, TFlags> {
+    return new Attribute({
+      def: this._def,
+      type: this._type,
+      flags: this._flags
+    });
   }
 
   /**
    * Helper method to assign values to definition properties.
    * Used internally by specialized attribute classes to modify constraints.
    */
-  protected assignToDef<K extends keyof TDef>(key: K, value: TDef[K]): this {
+  protected assignDefProp<K extends keyof TDef>(key: K, value: TDef[K]): this {
     this._def[key] = value;
     return this;
   }

@@ -15,6 +15,7 @@ export * from './models/resource';
 export * from './relations/graph';
 export * from './relations/linker';
 
+export * from './types/factory.type';
 export * from './types/utility.type';
 
 export * from './utils/combine-resources';

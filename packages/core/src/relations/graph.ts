@@ -195,6 +195,18 @@ export class RelationGraph<
   /** Internal graph representation using adjacency list (outgoing edges) */
   private readonly adjacencyList: Map<string, Set<string>>;
 
+  private constructor(
+    resourceMap: TResourceMap,
+    relationshipMap: ArrayRelationshipMap<TResourceMap>
+  ) {
+    const { relations, adjacencyList } = this.createGraphData(
+      resourceMap,
+      relationshipMap
+    );
+    this.relations = relations as TRelations;
+    this.adjacencyList = adjacencyList;
+  }
+
   /**
    * Creates a new instance of the RelationGraph from a resource map
    * and a function that defines relationships using a ResourceLinker.
@@ -215,18 +227,6 @@ export class RelationGraph<
     const relationships = createRelationships(linker);
 
     return new RelationGraph(resourceMap, relationships);
-  }
-
-  private constructor(
-    resourceMap: TResourceMap,
-    relationshipMap: ArrayRelationshipMap<TResourceMap>
-  ) {
-    const { relations, adjacencyList } = this.createGraphData(
-      resourceMap,
-      relationshipMap
-    );
-    this.relations = relations as TRelations;
-    this.adjacencyList = adjacencyList;
   }
 
   /**
