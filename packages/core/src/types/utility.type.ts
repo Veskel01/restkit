@@ -17,3 +17,9 @@ export type DecrementDepth<T extends number> = T extends 0
 export type RemoveNeverProperties<T extends object> = {
   [K in keyof T as T[K] extends never ? never : K]: T[K];
 };
+
+export type RemoveNilProperties<T extends object> = {
+  [K in keyof T as T[K] extends null | undefined ? never : K]: T[K];
+};
+
+export type IsEmptyObject<T> = T extends Record<string, never> ? true : false;

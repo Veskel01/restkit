@@ -1,4 +1,4 @@
-import { PATH_SEPARATOR } from '../constants';
+import { type KeyPath, createKeyPath } from '../utils/key-path';
 import type { AnyResource, GetResourceName, ResourceMap } from './resource';
 
 /**
@@ -9,10 +9,12 @@ export enum RelationCardinality {
   MANY = 'many'
 }
 
-export type RelationKey<
+export type RelationPath<
   TFrom extends AnyResource | string,
   TName extends string
-> = `${TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom}${typeof PATH_SEPARATOR}${TName}`;
+> = KeyPath<
+  [TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom, TName]
+>;
 
 export type AnyRelation = Relation<
   AnyResource,
@@ -46,53 +48,30 @@ export type RelationshipMap<TResourceMap extends ResourceMap> = {
 export type RelationMap = Record<string, AnyRelation>;
 
 export class Relation<
-  TFrom extends AnyResource,
-  TTo extends AnyResource,
+  TSource extends AnyResource,
+  TTarget extends AnyResource,
   TName extends string,
   TCardinality extends RelationCardinality
 > {
-  /**
-   * Source resource
-   */
-  public readonly from: TFrom;
-
-  /**
-   * Target resource
-   */
-  public readonly to: TTo;
-
-  /**
-   * Relation name
-   */
+  public readonly source: TSource;
+  public readonly target: TTarget;
   public readonly name: TName;
-
-  /**
-   * Relation cardinality
-   */
   public readonly cardinality: TCardinality;
-
-  /**
-   * Relation key (used for references)
-   */
-  public readonly key: RelationKey<TFrom, TName>;
+  public readonly path: RelationPath<TSource, TName>;
 
   public constructor(
-    from: TFrom,
-    to: TTo,
+    source: TSource,
+    target: TTarget,
     name: TName,
     cardinality: TCardinality
   ) {
-    this.from = from;
-    this.to = to;
+    this.source = source;
+    this.target = target;
     this.name = name;
     this.cardinality = cardinality;
-    this.key = Relation.createKey(from, name);
-  }
-
-  public static createKey<TFrom extends AnyResource, TName extends string>(
-    from: TFrom,
-    name: TName
-  ): RelationKey<TFrom, TName> {
-    return `${from.name}${PATH_SEPARATOR}${name}` as RelationKey<TFrom, TName>;
+    this.path = createKeyPath(source.name, name) as RelationPath<
+      TSource,
+      TName
+    >;
   }
 }

@@ -9,14 +9,13 @@ export * from './attributes/object';
 export * from './attributes/string';
 export * from './attributes/tuple';
 
-export * from './constants';
-
 export * from './models/relation';
 export * from './models/resource';
 
-export * from './relations/definition';
+export * from './relations/graph';
 export * from './relations/linker';
 
 export * from './types/utility.type';
 
 export * from './utils/combine-resources';
+export * from './utils/key-path';
