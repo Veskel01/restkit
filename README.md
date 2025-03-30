@@ -33,28 +33,28 @@ import { resource, attr } from '@restkit/core';
 
 // Define a user resource
 const userResource = resource('user', {
-  id: attr.number().primary(),  // Mark as primary key
-  name: attr.string().required(),
-  email: attr.string().format('email').required(),
-  role: attr.enum(['admin', 'user', 'guest']).default('user'),
+  id: attr.number(),
+  name: attr.string(),
+  email: attr.string().format('email'),
+  role: attr.enum(['admin', 'user', 'guest']),
   createdAt: attr.date(),
   updatedAt: attr.date()
 });
 
 // Define a post resource
 const postResource = resource('post', {
-  id: attr.number().primary(),
-  title: attr.string().required().min(3).max(100),
-  content: attr.string().required(),
-  published: attr.boolean().default(false),
+  id: attr.number(),
+  title: attr.string(),
+  content: attr.string(),
+  published: attr.boolean(),
   createdAt: attr.date(),
   updatedAt: attr.date()
 });
 
 // Define a comment resource
 const commentResource = resource('comment', {
-  id: attr.number().primary(),
-  content: attr.string().required(),
+  id: attr.number(),
+  content: attr.string(),
   createdAt: attr.date(),
   updatedAt: attr.date()
 });
