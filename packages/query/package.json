@@ -14,7 +14,6 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "prebuild": "rm -rf dist",
-    "build": "tsc -p tsconfig.build.json",
     "dev": "tsc --watch",
     "test:unit": "vitest --run --project unit"
   },

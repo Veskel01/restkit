@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "version": "0.0.1",
-  "description": "RestKit core package",
+  "description": "Package including core functionalities and types for RestKit",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

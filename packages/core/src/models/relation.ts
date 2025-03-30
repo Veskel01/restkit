@@ -1,5 +1,5 @@
 import { type KeyPath, createKeyPath } from '../utils/key-path';
-import type { AnyResource, GetResourceName, ResourceMap } from './resource';
+import type { AnyResource, GetResourceName } from './resource';
 
 /**
  * Represents cardinality of resource relations in REST API
@@ -9,6 +9,12 @@ export enum RelationCardinality {
   MANY = 'many'
 }
 
+/**
+ * Represents a path through a resource hierarchy, connecting a source resource to a target resource through a relation name.
+ *
+ * @template TFrom - The source resource or resource name
+ * @template TName - The name of the relation
+ */
 export type RelationPath<
   TFrom extends AnyResource | string,
   TName extends string
@@ -23,39 +29,28 @@ export type AnyRelation = Relation<
   RelationCardinality
 >;
 
-export interface Relationship<
-  TResourceMap extends ResourceMap,
-  TTarget extends keyof TResourceMap,
-  TName extends string,
-  C extends RelationCardinality
-> {
-  target: TTarget;
-  name: TName;
-  cardinality: C;
-}
-
-export type AnyRelationship = Relationship<
-  ResourceMap,
-  string,
-  string,
-  RelationCardinality
->;
-
-export type RelationshipMap<TResourceMap extends ResourceMap> = {
-  [K in keyof TResourceMap]?: Record<string, AnyRelationship>;
-};
-
+/**
+ * Represents a map of relations, where each key is a resource name and each value is an array of relations.
+ */
 export type RelationMap = Record<string, AnyRelation>;
 
+/**
+ * Represents a relation between a source resource and a target resource.
+ *
+ * @template TSource - The source resource
+ * @template TTarget - The target resource
+ * @template TName - The name of the relation
+ * @template TCardinality - The cardinality of the relation
+ */
 export class Relation<
   TSource extends AnyResource,
   TTarget extends AnyResource,
   TName extends string,
   TCardinality extends RelationCardinality
 > {
+  public readonly name: TName;
   public readonly source: TSource;
   public readonly target: TTarget;
-  public readonly name: TName;
   public readonly cardinality: TCardinality;
   public readonly path: RelationPath<TSource, TName>;
 
@@ -65,9 +60,9 @@ export class Relation<
     name: TName,
     cardinality: TCardinality
   ) {
+    this.name = name;
     this.source = source;
     this.target = target;
-    this.name = name;
     this.cardinality = cardinality;
     this.path = createKeyPath(source.name, name) as RelationPath<
       TSource,
