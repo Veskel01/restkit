@@ -12,8 +12,8 @@ export * from './attributes/tuple';
 export * from './models/relation';
 export * from './models/resource';
 
+export * from './relations/connector';
 export * from './relations/graph';
-export * from './relations/referencer';
 
 export * from './types/factory.type';
 export * from './types/utility.type';

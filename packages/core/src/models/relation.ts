@@ -2,7 +2,11 @@ import { type KeyPath, createKeyPath } from '../utils/key-path';
 import type { AnyResource, GetResourceName } from './resource';
 
 /**
- * Represents cardinality of resource relations in REST API
+ * Describes the type of relationship between resources.
+ * - `ONE`: The relation points to a single resource
+ * - `MANY`: The relation points to multiple resources
+ *
+ * Used to define whether a relation is one-to-one or one-to-many.
  */
 export enum RelationCardinality {
   ONE = 'one',
@@ -10,10 +14,16 @@ export enum RelationCardinality {
 }
 
 /**
- * Represents a path through a resource hierarchy, connecting a source resource to a target resource through a relation name.
+ * Represents a key path between two resources using a relation name.
+ * This is used to express a navigable path in resource hierarchies.
  *
- * @template TFrom - The source resource or resource name
- * @template TName - The name of the relation
+ * @template TFrom - Source resource name or resource type
+ * @template TName - Name of the relation
+ *
+ * @example
+ * ```ts
+ * type Path = RelationPath<'user', 'posts'>; // "user.posts"
+ * ```
  */
 export type RelationPath<
   TFrom extends AnyResource | string,
@@ -22,6 +32,10 @@ export type RelationPath<
   [TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom, TName]
 >;
 
+/**
+ * A type alias representing any possible relation instance.
+ * Useful when working with untyped or dynamic relations.
+ */
 export type AnyRelation = Relation<
   AnyResource,
   AnyResource,
@@ -30,17 +44,28 @@ export type AnyRelation = Relation<
 >;
 
 /**
- * Represents a map of relations, where each key is a resource name and each value is an array of relations.
+ * A map of named relations for a given resource.
+ * The keys represent relation names, and the values are `Relation` instances.
  */
 export type RelationMap = Record<string, AnyRelation>;
 
 /**
- * Represents a relation between a source resource and a target resource.
+ * Represents a relation between two resources.
+ * Includes metadata like relation name, target resource, and cardinality.
  *
- * @template TSource - The source resource
- * @template TTarget - The target resource
+ * This class is used internally to describe relationships and relation paths
+ * between resources in a `RelationGraph`.
+ *
+ * @template TSource - The source resource (where the relation originates)
+ * @template TTarget - The target resource (where the relation points to)
  * @template TName - The name of the relation
- * @template TCardinality - The cardinality of the relation
+ * @template TCardinality - The cardinality of the relation (ONE or MANY)
+ *
+ * @example
+ * ```ts
+ * const relation = new Relation(userResource, postResource, 'posts', RelationCardinality.MANY);
+ * console.log(relation.path); // "user.posts"
+ * ```
  */
 export class Relation<
   TSource extends AnyResource,
@@ -48,12 +73,29 @@ export class Relation<
   TName extends string,
   TCardinality extends RelationCardinality
 > {
+  /** The name of the relation (e.g., "author", "posts") */
   public readonly name: TName;
+
+  /** The source resource where the relation originates */
   public readonly source: TSource;
+
+  /** The target resource where the relation points to */
   public readonly target: TTarget;
+
+  /** The cardinality of the relation (one or many) */
   public readonly cardinality: TCardinality;
+
+  /** The fully-qualified relation path, e.g. "user.posts" */
   public readonly path: RelationPath<TSource, TName>;
 
+  /**
+   * Creates a new relation between two resources.
+   *
+   * @param source - The source resource
+   * @param target - The target resource
+   * @param name - The name of the relation
+   * @param cardinality - The cardinality of the relation
+   */
   public constructor(
     source: TSource,
     target: TTarget,

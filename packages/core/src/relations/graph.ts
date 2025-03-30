@@ -21,7 +21,7 @@ import {
   combineResources
 } from '../utils/combine-resources';
 import { KEY_PATH_SEPARATOR, createKeyPath } from '../utils/key-path';
-import { type AnyRelationReference, RelationReferencer } from './referencer';
+import { type AnyRelationConnection, RelationConnector } from './connector';
 
 /**
  * Represents a resource along with its defined relations.
@@ -43,33 +43,33 @@ interface ResourceWithRelations<
 }
 
 /**
- * Maps resource names to arrays of relation references.
- * This structure is used when defining relationships between resources.
+ * Maps resource names to arrays of relation connections.
+ * This structure is used to define how resources are connected to each other.
  *
  * @template TResourceMap - Map of resource names to resource definitions
  */
-type RelationReferenceMap<TResourceMap extends ResourceMap> = {
-  [K in keyof TResourceMap]?: AnyRelationReference[];
+type RelationConnectionMap<TResourceMap extends ResourceMap> = {
+  [K in keyof TResourceMap]?: AnyRelationConnection[];
 };
 
 /**
- * Maps resources to their relations based on a relation reference map.
- * This type transforms the reference map into actual relation instances.
+ * Maps resources to their connections based on a relation connection map.
+ * This type transforms the connection map into actual relation instances.
  *
  * @template TResourceMap - Map of resource names to resource definitions
- * @template TRelationships - Map of resource names to arrays of relation references
+ * @template TConnections - Map of resource names to arrays of relation connections
  */
 export type ConnectedRelations<
   TResourceMap extends ResourceMap,
-  TRelationships extends RelationReferenceMap<TResourceMap>
+  TConnections extends RelationConnectionMap<TResourceMap>
 > = {
   [K in keyof TResourceMap]: ResourceWithRelations<
     TResourceMap[K],
-    K extends keyof TRelationships
-      ? TRelationships[K] extends AnyRelationReference[]
+    K extends keyof TConnections
+      ? TConnections[K] extends AnyRelationConnection[]
         ? {
-            [RelName in TRelationships[K][number]['name']]: Extract<
-              TRelationships[K][number],
+            [RelName in TConnections[K][number]['name']]: Extract<
+              TConnections[K][number],
               { name: RelName }
             > extends {
               target: infer TTarget;
@@ -100,13 +100,17 @@ export type ConnectedRelations<
  */
 export type AnyConnectedRelations<
   TResourceMap extends ResourceMap = ResourceMap
+> = ConnectedRelations<
+  TResourceMap,
   // biome-ignore lint/suspicious/noExplicitAny: Required for proper type matching
-> = ConnectedRelations<TResourceMap, RelationReferenceMap<TResourceMap> & any>;
+  RelationConnectionMap<TResourceMap> & any
+>;
 
 /**
  * Infers the complete resource type with its nested relations up to a specified depth.
  * This type recursively builds a structure that includes both the resource's own properties
- * and its related resources, handling both one-to-one and one-to-many relationships.
+ * and its related resources, handling different relationship types and cardinalities.
+ *
  * @template TRelationsResult - Record mapping resource names to their definitions with relations
  * @template TResourceName - Name of the resource to infer relations for
  * @template TDepth - Maximum depth of relation nesting (default: 3)
@@ -162,12 +166,12 @@ export type InferResourceWithRelations<
  * @template TRelations - Connected relations structure
  */
 type HasRelations<
-  TResourceName extends keyof TRelations,
-  TRelations extends ConnectedRelations<
+  TResourceName extends keyof TRelationDefinitions,
+  TRelationDefinitions extends ConnectedRelations<
     ResourceMap,
-    RelationReferenceMap<ResourceMap>
+    RelationConnectionMap<ResourceMap>
   >
-> = IsEmptyObject<TRelations[TResourceName]['relations']> extends true
+> = IsEmptyObject<TRelationDefinitions[TResourceName]['relations']> extends true
   ? false
   : true;
 
@@ -234,11 +238,11 @@ export class RelationGraph<
 
   private constructor(
     resourceMap: TResourceMap,
-    relationships: RelationReferenceMap<TResourceMap>
+    connections: RelationConnectionMap<TResourceMap>
   ) {
     const { relations, adjacencyList } = this.createGraphData(
       resourceMap,
-      relationships
+      connections
     );
     this.relations = relations;
     this.adjacencyList = adjacencyList;
@@ -246,28 +250,28 @@ export class RelationGraph<
 
   /**
    * Creates a new instance of the RelationGraph from a resource map
-   * and a function that defines relationships using a RelationReferencer.
+   * and a function that defines connections using a RelationConnector.
    *
    * @param resourceMap - Map of resource names to resource definitions
-   * @param createRelationships - Function that uses a referencer to define relationships
-   * @returns A new RelationGraph instance with the defined relationships
+   * @param createConnections - Function that uses a RelationConnector to define connections
+   * @returns A new RelationGraph instance with the defined connections
    */
   public static create<
     TResourceMap extends ResourceMap,
-    TRelationships extends RelationReferenceMap<TResourceMap>
+    TConnections extends RelationConnectionMap<TResourceMap>
   >(
     resourceMap: TResourceMap,
-    createRelationships: (
-      referencer: RelationReferencer<TResourceMap>
-    ) => TRelationships
+    createConnections: (
+      connector: RelationConnector<TResourceMap>
+    ) => TConnections
   ): RelationGraph<
     TResourceMap,
-    ConnectedRelations<TResourceMap, TRelationships>
+    ConnectedRelations<TResourceMap, TConnections>
   > {
-    const referencer = new RelationReferencer(resourceMap);
-    const relationships = createRelationships(referencer);
+    const connector = new RelationConnector(resourceMap);
+    const connections = createConnections(connector);
 
-    return new RelationGraph(resourceMap, relationships);
+    return new RelationGraph(resourceMap, connections);
   }
 
   /**
@@ -360,6 +364,8 @@ export class RelationGraph<
 
   /**
    * Gets all valid relation paths from a specific resource.
+   * For 'OWNS' relationships, traverses the full path hierarchy.
+   * For 'BELONGS_TO' relationships, only includes direct relations without further traversal.
    *
    * @param resourceName - The name of the resource to get relation paths for
    * @param maxDepth - The maximum depth of relation paths to retrieve
@@ -373,7 +379,24 @@ export class RelationGraph<
     maxDepth: TDepth = 4 as TDepth
   ): ResourceRelationPaths<TRelations, K, TDepth>[] {
     const paths: string[] = [];
-    this.collectRelationPaths(resourceName, '', paths, maxDepth);
+
+    // Get all relations for this resource
+    const relations = this.getRelationsFor(resourceName);
+
+    // First pass: collect direct relation names
+    for (const [relationName, relation] of Object.entries(relations)) {
+      const typedRelation = relation as AnyRelation;
+      paths.push(relationName);
+
+      this.collectRelationPaths(
+        typedRelation.target.name as K,
+        relationName,
+        paths,
+        maxDepth - 1,
+        new Set([resourceName as string])
+      );
+    }
+
     return paths as ResourceRelationPaths<TRelations, K, TDepth>[];
   }
 
@@ -464,21 +487,17 @@ export class RelationGraph<
   }
 
   /**
-   * Recursively collects relation paths starting from a resource.
+   * Helper method to collect nested relation paths.
+   * This is separated from the main method to clarify that it's only used for OWNS relationships.
    *
    * @private
-   * @param resourceName - The name of the resource to start from
-   * @param currentPath - The current path being constructed
-   * @param result - Array to collect the valid paths
-   * @param remainingDepth - How many more levels to traverse
-   * @param visited - Set of already visited resources to prevent cycles
    */
-  private collectRelationPaths(
-    resourceName: keyof TResourceMap,
+  private collectRelationPaths<K extends keyof TResourceMap>(
+    resourceName: K,
     currentPath: string,
     result: string[],
     remainingDepth: number,
-    visited: Set<string> = new Set()
+    visited: Set<string>
   ): void {
     if (remainingDepth <= 0 || visited.has(resourceName as string)) {
       return;
@@ -489,15 +508,12 @@ export class RelationGraph<
 
     for (const [relationName, relation] of Object.entries(relations)) {
       const typedRelation = relation as AnyRelation;
-
-      const newPath = currentPath
-        ? createKeyPath(currentPath, relationName)
-        : relationName;
+      const newPath = createKeyPath(currentPath, relationName);
 
       result.push(newPath);
 
       this.collectRelationPaths(
-        typedRelation.target.name as keyof TResourceMap,
+        typedRelation.target.name as K,
         newPath,
         result,
         remainingDepth - 1,
@@ -532,7 +548,7 @@ export class RelationGraph<
    */
   private createGraphData(
     resourceMap: ResourceMap,
-    referenceMap: RelationReferenceMap<ResourceMap>
+    connections: RelationConnectionMap<ResourceMap>
   ): {
     relations: TRelations;
     adjacencyList: Map<string, Set<string>>;
@@ -551,11 +567,11 @@ export class RelationGraph<
     for (const [sourceResourceName, sourceResource] of Object.entries(
       resourceMap
     )) {
-      const resourceRelationsArray = referenceMap[sourceResourceName] || [];
+      const resourceConnectionsArray = connections[sourceResourceName] || [];
       const processedRelations: RelationMap = {};
 
-      for (const relationDef of resourceRelationsArray) {
-        const { name: relationName, target, cardinality } = relationDef;
+      for (const relationConnection of resourceConnectionsArray) {
+        const { name: relationName, target, cardinality } = relationConnection;
 
         if (!relationName) {
           throw new Error(
@@ -569,7 +585,6 @@ export class RelationGraph<
           throw new Error(`Resource ${target} not found in resource map`);
         }
 
-        // Create a new Relation instance
         const relation = new Relation(
           sourceResource,
           targetResource,
@@ -599,49 +614,46 @@ export class RelationGraph<
  * - An array of resources (automatically combined into a map)
  * - A pre-defined resource map
  *
- * This is the primary entry point for building relationship graphs.
+ * This is the primary entry point for building relation graphs between resources.
  *
  * @param resources - Resource array or map
- * @param createRelationships - Function that uses a referencer to define relationships
- * @returns A new RelationGraph instance with the defined relationships
+ * @param createConnections - Function that uses a RelationConnector to define connections
+ * @returns A new RelationGraph instance with the defined connections
  *
  * @example
- * ```typescript
- * const graph = createRelationGraph(resources, (referencer) => ({
+ * ```ts
+ * const graph = createRelationGraph(resources, (connector) => ({
  *   user: [
- *     referencer.one.profile.as('profile'),
- *     referencer.many.posts.as('posts')
+ *     connector.one.profile.as('profile'),
+ *     connector.many.posts.as('posts')
  *   ],
  *   post: [
- *     referencer.one.user.as('author')
+ *     connector.one.user.as('author')
  *   ]
  * }));
  * ```
  */
 export function createRelationGraph<
   TResources extends AnyResource[] | ResourceMap,
-  TRelationships extends RelationReferenceMap<TResourceMap>,
+  TConnections extends RelationConnectionMap<TResourceMap>,
   TResourceMap extends TResources extends AnyResource[]
     ? CombinedResources<TResources>
     : TResources
 >(
   resources: TResources,
-  createRelationships: (
-    referencer: RelationReferencer<TResourceMap>
-  ) => TRelationships
-): RelationGraph<
-  TResourceMap,
-  ConnectedRelations<TResourceMap, TRelationships>
-> {
+  createConnections: (
+    connector: RelationConnector<TResourceMap>
+  ) => TConnections
+): RelationGraph<TResourceMap, ConnectedRelations<TResourceMap, TConnections>> {
   if (Array.isArray(resources)) {
     return RelationGraph.create(
       combineResources(...resources),
-      createRelationships
+      createConnections
     );
   }
 
   return RelationGraph.create(
     resources as unknown as TResourceMap,
-    createRelationships
+    createConnections
   );
 }

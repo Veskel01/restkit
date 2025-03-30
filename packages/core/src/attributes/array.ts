@@ -6,7 +6,7 @@ import {
 } from './attribute';
 
 export interface ArrayAttributeDef<TItem extends AnyAttribute> {
-  item: TItem;
+  itemType: TItem;
 }
 
 export class ArrayAttribute<TItem extends AnyAttribute> extends Attribute<
@@ -14,13 +14,13 @@ export class ArrayAttribute<TItem extends AnyAttribute> extends Attribute<
   InferAttributeOutput<TItem>[],
   ArrayAttributeDef<TItem>
 > {
-  public constructor(item: TItem) {
-    super({ def: { item }, type: AttributeType.Array });
+  public constructor(itemType: TItem) {
+    super({ def: { itemType }, type: AttributeType.Array });
   }
 }
 
 export function array<TItem extends AnyAttribute>(
-  item: TItem
+  itemType: TItem
 ): ArrayAttribute<TItem> {
-  return new ArrayAttribute(item);
+  return new ArrayAttribute(itemType);
 }

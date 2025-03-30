@@ -1,84 +1,97 @@
-# Turborepo starter
+# RestKit
 
-This Turborepo starter is maintained by the Turborepo core team.
+RestKit is a TypeScript toolkit designed to simplify and enhance your API integration process. It provides a comprehensive set of tools for defining, querying, and managing RESTful APIs with complete type safety.
 
-## Using this example
+## Overview
 
-Run the following command:
+RestKit takes a resource-centric approach to REST APIs, allowing you to:
+- Model your API resources and their attributes with type validation
+- Define relationships between resources to create a navigable resource graph
+- Query and manipulate your API resources with full TypeScript type safety
+- Reduce boilerplate code in your API integration layer
 
-```sh
-npx create-turbo@latest
+## Installation
+
+<!-- TODO - Add installation instructions -->
+
+```bash
+TODO
 ```
 
-## What's inside?
+## Packages
 
-This Turborepo includes the following packages/apps:
+### Core (`@restkit/core`)
+The foundation of RestKit, providing the basic building blocks:
+- Resource definition with typed attributes
+- Relationship modeling (one-to-one, one-to-many)
+- Type-safe resource graph construction
 
-### Apps and Packages
+#### Defining Resources
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+```ts
+import { resource, attr } from '@restkit/core';
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+// Define a user resource
+const userResource = resource('user', {
+  id: attr.number().primary(),  // Mark as primary key
+  name: attr.string().required(),
+  email: attr.string().format('email').required(),
+  role: attr.enum(['admin', 'user', 'guest']).default('user'),
+  createdAt: attr.date(),
+  updatedAt: attr.date()
+});
 
-### Utilities
+// Define a post resource
+const postResource = resource('post', {
+  id: attr.number().primary(),
+  title: attr.string().required().min(3).max(100),
+  content: attr.string().required(),
+  published: attr.boolean().default(false),
+  createdAt: attr.date(),
+  updatedAt: attr.date()
+});
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
+// Define a comment resource
+const commentResource = resource('comment', {
+  id: attr.number().primary(),
+  content: attr.string().required(),
+  createdAt: attr.date(),
+  updatedAt: attr.date()
+});
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+#### Creating Relationship Graphs
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+```ts
+import { createRelationGraph, combineResources } from '@restkit/core';
 
+// Combine resources into a single schema
+const resources = combineResources(userResource, postResource, commentResource);
+
+// Define relationships between resources
+const graph = createRelationGraph(
+  resources,
+  (r) => ({
+    user: [
+      r.many.post.as('posts'),          // One user has many posts
+      r.one.profile.as('profile')        // One user has one profile
+    ],
+    post: [
+      r.belongsTo.user.as('author'),     // Post belongs to a user
+      r.many.comment.as('comments')      // Post has many comments
+    ],
+    comment: [
+      r.belongsTo.user.as('author'),     // Comment belongs to a user
+      r.belongsTo.post.as('post')        // Comment belongs to a post
+    ]
+  })
+);
 ```
-npx turbo link
-```
 
-## Useful Links
+## Contributing
 
-Learn more about the power of Turborepo:
+We welcome contributions to RestKit! Please see our [contributing guidelines](CONTRIBUTING.md) for more information.
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+## License
+
+RestKit is released under the MIT License.
