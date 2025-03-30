@@ -27,9 +27,11 @@ export enum RelationCardinality {
  */
 export type RelationPath<
   TFrom extends AnyResource | string,
-  TName extends string
+  TName extends string,
+  TSeparator extends string
 > = KeyPath<
-  [TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom, TName]
+  [TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom, TName],
+  TSeparator
 >;
 
 /**
@@ -40,7 +42,8 @@ export type AnyRelation = Relation<
   AnyResource,
   AnyResource,
   string,
-  RelationCardinality
+  RelationCardinality,
+  string
 >;
 
 /**
@@ -60,7 +63,7 @@ export type RelationMap = Record<string, AnyRelation>;
  * @template TTarget - The target resource (where the relation points to)
  * @template TName - The name of the relation
  * @template TCardinality - The cardinality of the relation (ONE or MANY)
- *
+ * @template TPathSeparator - The separator used in the relation path
  * @example
  * ```ts
  * const relation = new Relation(userResource, postResource, 'posts', RelationCardinality.MANY);
@@ -71,7 +74,8 @@ export class Relation<
   TSource extends AnyResource,
   TTarget extends AnyResource,
   TName extends string,
-  TCardinality extends RelationCardinality
+  TCardinality extends RelationCardinality,
+  TPathSeparator extends string
 > {
   /** The name of the relation (e.g., "author", "posts") */
   public readonly name: TName;
@@ -86,7 +90,7 @@ export class Relation<
   public readonly cardinality: TCardinality;
 
   /** The fully-qualified relation path, e.g. "user.posts" */
-  public readonly path: RelationPath<TSource, TName>;
+  public readonly path: RelationPath<TSource, TName, TPathSeparator>;
 
   /**
    * Creates a new relation between two resources.
@@ -100,15 +104,16 @@ export class Relation<
     source: TSource,
     target: TTarget,
     name: TName,
-    cardinality: TCardinality
+    cardinality: TCardinality,
+    pathSeparator: TPathSeparator
   ) {
     this.name = name;
     this.source = source;
     this.target = target;
     this.cardinality = cardinality;
-    this.path = createKeyPath(source.name, name) as RelationPath<
-      TSource,
-      TName
-    >;
+    this.path = createKeyPath(
+      [source.name, name],
+      pathSeparator
+    ) as RelationPath<TSource, TName, TPathSeparator>;
   }
 }

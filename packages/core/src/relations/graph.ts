@@ -20,7 +20,7 @@ import {
   type CombinedResources,
   combineResources
 } from '../utils/combine-resources';
-import { KEY_PATH_SEPARATOR, createKeyPath } from '../utils/key-path';
+import { DEFAULT_KEY_PATH_SEPARATOR, createKeyPath } from '../utils/key-path';
 import { type AnyRelationConnection, RelationConnector } from './connector';
 
 /**
@@ -61,7 +61,8 @@ type RelationConnectionMap<TResourceMap extends ResourceMap> = {
  */
 export type ConnectedRelations<
   TResourceMap extends ResourceMap,
-  TConnections extends RelationConnectionMap<TResourceMap>
+  TConnections extends RelationConnectionMap<TResourceMap>,
+  TPathSeparator extends string
 > = {
   [K in keyof TResourceMap]: ResourceWithRelations<
     TResourceMap[K],
@@ -81,7 +82,8 @@ export type ConnectedRelations<
                       TResourceMap[K],
                       TResourceMap[TTarget],
                       RelName & string,
-                      C
+                      C,
+                      TPathSeparator
                     >
                   : never
                 : never
@@ -103,7 +105,8 @@ export type AnyConnectedRelations<
 > = ConnectedRelations<
   TResourceMap,
   // biome-ignore lint/suspicious/noExplicitAny: Required for proper type matching
-  RelationConnectionMap<TResourceMap> & any
+  RelationConnectionMap<TResourceMap> & any,
+  string
 >;
 
 /**
@@ -128,13 +131,14 @@ export type InferResourceWithRelations<
   ? InferResourceOutput<TRelationsResult[TResourceName]['resource']>
   : RemoveNeverProperties<
       InferResourceOutput<TRelationsResult[TResourceName]['resource']> & {
-        [K in keyof TRelationsResult[TResourceName]['relations']]: `${RelationPath<TResourceName & string, K & string>}` extends TVisitedPaths
+        [K in keyof TRelationsResult[TResourceName]['relations']]: `${RelationPath<TResourceName & string, K & string, string>}` extends TVisitedPaths
           ? never
           : TRelationsResult[TResourceName]['relations'][K] extends Relation<
                 AnyResource,
                 infer TTo,
                 infer TRelName,
-                infer C
+                infer C,
+                infer TPathSeparator
               >
             ? GetResourceName<TTo> extends keyof TRelationsResult
               ? C extends RelationCardinality.ONE
@@ -143,14 +147,14 @@ export type InferResourceWithRelations<
                     GetResourceName<TTo> & keyof TRelationsResult,
                     DecrementDepth<TDepth>,
                     | TVisitedPaths
-                    | `${RelationPath<TResourceName & string, TRelName>}`
+                    | `${RelationPath<TResourceName & string, TRelName, TPathSeparator>}`
                   > | null
                 : InferResourceWithRelations<
                     TRelationsResult,
                     GetResourceName<TTo> & keyof TRelationsResult,
                     DecrementDepth<TDepth>,
                     | TVisitedPaths
-                    | `${RelationPath<TResourceName & string, TRelName>}`
+                    | `${RelationPath<TResourceName & string, TRelName, TPathSeparator>}`
                   >[]
               : C extends RelationCardinality.ONE
                 ? InferResourceOutput<TTo> | null
@@ -169,7 +173,8 @@ type HasRelations<
   TResourceName extends keyof TRelationDefinitions,
   TRelationDefinitions extends ConnectedRelations<
     ResourceMap,
-    RelationConnectionMap<ResourceMap>
+    RelationConnectionMap<ResourceMap>,
+    string
   >
 > = IsEmptyObject<TRelationDefinitions[TResourceName]['relations']> extends true
   ? false
@@ -197,7 +202,8 @@ export type ResourceRelationPaths<
           AnyResource,
           infer TTo,
           string,
-          RelationCardinality
+          RelationCardinality,
+          infer TPathSeparator
         >
           ?
               | (RelName & string)
@@ -207,7 +213,7 @@ export type ResourceRelationPaths<
                       GetResourceName<TTo> & keyof TRelations,
                       TRelations
                     > extends true
-                    ? `${RelName & string}${typeof KEY_PATH_SEPARATOR}${ResourceRelationPaths<
+                    ? `${RelName & string}${TPathSeparator}${ResourceRelationPaths<
                         TRelations,
                         GetResourceName<TTo> & keyof TRelations,
                         DecrementDepth<TDepth>
@@ -219,6 +225,14 @@ export type ResourceRelationPaths<
       }[keyof TRelations[TResourceName]['relations']];
 
 /**
+ * Options for creating a RelationGraph.
+ *
+ * @template TPathSeparator - The separator used for relation paths
+ */
+export interface RelationGraphOptions<TPathSeparator extends string> {
+  pathSeparator?: TPathSeparator;
+}
+/**
  * Represents a directed graph structure where nodes are resources
  * and edges are relations between them. This is the core structure used for
  * querying and navigating structured resource relationships.
@@ -228,18 +242,23 @@ export type ResourceRelationPaths<
  */
 export class RelationGraph<
   TResourceMap extends ResourceMap,
-  TRelations extends AnyConnectedRelations<TResourceMap>
+  TRelations extends AnyConnectedRelations<TResourceMap>,
+  TPathSeparator extends string = typeof DEFAULT_KEY_PATH_SEPARATOR
 > {
-  /** Complete mapping of each resource to its relations */
   public readonly relations: Readonly<TRelations>;
-
-  /** Internal graph representation using adjacency list (outgoing edges) */
   private readonly adjacencyList: Map<string, Set<string>>;
+  private readonly options: Required<RelationGraphOptions<TPathSeparator>>;
 
   private constructor(
     resourceMap: TResourceMap,
-    connections: RelationConnectionMap<TResourceMap>
+    connections: RelationConnectionMap<TResourceMap>,
+    {
+      pathSeparator = DEFAULT_KEY_PATH_SEPARATOR as TPathSeparator
+    }: RelationGraphOptions<TPathSeparator> = {}
   ) {
+    this.options = {
+      pathSeparator
+    };
     const { relations, adjacencyList } = this.createGraphData(
       resourceMap,
       connections
@@ -258,20 +277,23 @@ export class RelationGraph<
    */
   public static create<
     TResourceMap extends ResourceMap,
-    TConnections extends RelationConnectionMap<TResourceMap>
+    TConnections extends RelationConnectionMap<TResourceMap>,
+    TPathSeparator extends string
   >(
     resourceMap: TResourceMap,
     createConnections: (
       connector: RelationConnector<TResourceMap>
-    ) => TConnections
+    ) => TConnections,
+    options?: RelationGraphOptions<TPathSeparator>
   ): RelationGraph<
     TResourceMap,
-    ConnectedRelations<TResourceMap, TConnections>
+    ConnectedRelations<TResourceMap, TConnections, TPathSeparator>,
+    TPathSeparator
   > {
     const connector = new RelationConnector(resourceMap);
     const connections = createConnections(connector);
 
-    return new RelationGraph(resourceMap, connections);
+    return new RelationGraph(resourceMap, connections, options);
   }
 
   /**
@@ -469,7 +491,7 @@ export class RelationGraph<
       return false;
     }
 
-    const segments = path.split(KEY_PATH_SEPARATOR);
+    const segments = path.split(this.options.pathSeparator);
     let currentResource: keyof TResourceMap = resourceName;
 
     for (const segment of segments) {
@@ -508,7 +530,10 @@ export class RelationGraph<
 
     for (const [relationName, relation] of Object.entries(relations)) {
       const typedRelation = relation as AnyRelation;
-      const newPath = createKeyPath(currentPath, relationName);
+      const newPath = createKeyPath(
+        [currentPath, relationName],
+        this.options.pathSeparator
+      );
 
       result.push(newPath);
 
@@ -589,7 +614,8 @@ export class RelationGraph<
           sourceResource,
           targetResource,
           relationName,
-          cardinality
+          cardinality,
+          this.options.pathSeparator
         );
 
         processedRelations[relationName] = relation;
@@ -638,17 +664,24 @@ export function createRelationGraph<
   TConnections extends RelationConnectionMap<TResourceMap>,
   TResourceMap extends TResources extends AnyResource[]
     ? CombinedResources<TResources>
-    : TResources
+    : TResources,
+  TPathSeparator extends string
 >(
   resources: TResources,
   createConnections: (
     connector: RelationConnector<TResourceMap>
-  ) => TConnections
-): RelationGraph<TResourceMap, ConnectedRelations<TResourceMap, TConnections>> {
+  ) => TConnections,
+  options?: RelationGraphOptions<TPathSeparator>
+): RelationGraph<
+  TResourceMap,
+  ConnectedRelations<TResourceMap, TConnections, TPathSeparator>,
+  TPathSeparator
+> {
   if (Array.isArray(resources)) {
     return RelationGraph.create(
       combineResources(...resources),
-      createConnections
+      createConnections,
+      options
     );
   }
 
