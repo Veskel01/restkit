@@ -10,7 +10,7 @@ export type FilterOperatorToken =
 /**
  * Maps TypeScript types to their corresponding FilterValueType enum values
  */
-export type InferFilterValueType<T> = T extends string
+export type TsTypeToFilterValueType<T> = T extends string
   ? FilterValueType.String
   : T extends number
     ? FilterValueType.Number
@@ -21,6 +21,22 @@ export type InferFilterValueType<T> = T extends string
         : T extends unknown[]
           ? FilterValueType.Array
           : never;
+
+/**
+ * Maps FilterValueType enum values to their corresponding TypeScript types
+ */
+export type FilterValueTypeToTsType<T extends FilterValueType> =
+  T extends FilterValueType.String
+    ? string
+    : T extends FilterValueType.Number
+      ? number
+      : T extends FilterValueType.Date
+        ? Date
+        : T extends FilterValueType.Boolean
+          ? boolean
+          : T extends FilterValueType.Array
+            ? unknown[]
+            : never;
 
 /**
  * A map from operator name to its definition (token and supported value types)
@@ -44,7 +60,7 @@ export type OperatorByToken = {
  */
 export type OperatorsForValueType<VT extends FilterValueType> = {
   [K in keyof typeof FILTER_OPERATORS_MAP as VT extends (typeof FILTER_OPERATORS_MAP)[K]['valueTypes'][number]
-    ? (typeof FILTER_OPERATORS_MAP)[K]['token']
+    ? K
     : never]: (typeof FILTER_OPERATORS_MAP)[K];
 };
 
@@ -54,13 +70,17 @@ export type OperatorsForValueType<VT extends FilterValueType> = {
 export type OperatorInputType<
   T,
   TToken extends FilterOperatorToken
-> = TToken extends 'btw' | 'nbtw' // Between operators take a tuple of [min, max]
+> = TToken extends
+  | typeof FILTER_OPERATORS_MAP.between.token
+  | typeof FILTER_OPERATORS_MAP.notBetween.token // Between operators take a tuple of [min, max]
   ? [T, T]
   : // In/NotIn operators take an array
-    TToken extends 'in' | 'nin'
+    TToken extends
+        | typeof FILTER_OPERATORS_MAP.in.token
+        | typeof FILTER_OPERATORS_MAP.notIn.token
     ? T[]
     : // Check if the operator supports the value type
-      InferFilterValueType<T> extends OperatorByToken[TToken]['valueTypes'][number]
+      TsTypeToFilterValueType<T> extends OperatorByToken[TToken]['valueTypes'][number]
       ? // Special handling for string-specific operators
         TToken extends
           | typeof FILTER_OPERATORS_MAP.contains.token
@@ -110,7 +130,16 @@ export type PickFilterOperators<T, TTokens extends FilterOperatorToken> = {
  * Gets all valid filter operators for a given type
  */
 export type CompatibleFilterOperators<T> = {
-  [K in FilterOperatorToken as K extends keyof FilterOperatorTypeMap<T>
+  [K in FilterOperatorToken as TsTypeToFilterValueType<T> extends OperatorByToken[K]['valueTypes'][number]
     ? K
     : never]: FilterOperatorFunction<K, T>;
 };
+
+/**
+ * Gets operator names that are valid for a specific value type
+ */
+export type OperatorNamesForValueType<VT extends FilterValueType> = {
+  [K in keyof typeof FILTER_OPERATORS_MAP]: VT extends (typeof FILTER_OPERATORS_MAP)[K]['valueTypes'][number]
+    ? K
+    : never;
+}[keyof typeof FILTER_OPERATORS_MAP];

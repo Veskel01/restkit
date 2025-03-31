@@ -1,5 +1,6 @@
 import type {
   AnyAttribute,
+  AttributeFlags,
   InferAttributeOutput
 } from '../attributes/attribute';
 
@@ -62,6 +63,28 @@ export type InferResourceOutput<
  */
 export type GetResourceName<T extends Resource<string, ResourceAttributes>> =
   T extends Resource<infer TName, ResourceAttributes> ? TName : never;
+
+/**
+ * Extracts attribute names from a resource based on a specific flag.
+ *
+ * @template TResource - The resource type
+ * @template TFlag - The flag to check
+ * @template TDiscriminator - The discriminator value
+ *
+ * @example
+ * ```ts
+ * type SelectableAttributes = PickAttributesByFlag<typeof user, 'selectable'>;
+ * ```
+ */
+export type PickAttributesByFlag<
+  TResource extends AnyResource,
+  TFlag extends keyof AttributeFlags,
+  TDiscriminator extends boolean = true
+> = {
+  [K in keyof TResource['attributes']]: TResource['attributes'][K]['_flags'][TFlag] extends TDiscriminator
+    ? K
+    : never;
+}[keyof TResource['attributes']];
 
 /**
  * Represents a RESTful resource definition with a fixed name and a set of attributes.

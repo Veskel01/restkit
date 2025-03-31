@@ -1,20 +1,10 @@
-import type { AnyResource, AttributeFlags } from '@restkit/core';
-
-type AttributeNameWithFlag<
-  TResource extends AnyResource,
-  TFlag extends keyof AttributeFlags,
-  TValue extends boolean = true
-> = {
-  [K in keyof TResource['attributes']]: TResource['attributes'][K]['_flags'][TFlag] extends TValue
-    ? K
-    : never;
-}[keyof TResource['attributes']];
+import type { AnyResource, PickAttributesByFlag } from '@restkit/core';
 
 export type ResourceSelectableFields<TResource extends AnyResource> =
-  AttributeNameWithFlag<TResource, 'selectable'>;
+  PickAttributesByFlag<TResource, 'selectable'>;
 
 export type ResourceFilterableFields<TResource extends AnyResource> =
-  AttributeNameWithFlag<TResource, 'filterable'>;
+  PickAttributesByFlag<TResource, 'filterable'>;
 
 export type ResourceSortableFields<TResource extends AnyResource> =
-  AttributeNameWithFlag<TResource, 'sortable'>;
+  PickAttributesByFlag<TResource, 'sortable'>;

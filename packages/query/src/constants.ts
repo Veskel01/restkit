@@ -6,6 +6,12 @@ export enum FilterValueType {
   Array = 'array'
 }
 
+export enum QueryElementType {
+  SELECT = 'select',
+  FILTER = 'filter',
+  SORT = 'sort'
+}
+
 export const FILTER_OPERATORS_MAP = {
   equal: {
     token: 'eq',

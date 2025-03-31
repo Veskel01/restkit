@@ -18,5 +18,7 @@ export * from './relations/graph';
 export * from './types/factory.type';
 export * from './types/utility.type';
 
+export * from './utils/common';
+
 export * from './utils/combine-resources';
 export * from './utils/key-path';
