@@ -1,4 +1,4 @@
-import { type KeyPath, createKeyPath } from '../utils/key-path';
+import { type Path, createPathFromSegments } from '../utils/path';
 import type { AnyResource, GetResourceName } from './resource';
 
 /**
@@ -29,7 +29,7 @@ export type RelationPath<
   TFrom extends AnyResource | string,
   TName extends string,
   TSeparator extends string
-> = KeyPath<
+> = Path<
   [TFrom extends AnyResource ? GetResourceName<TFrom> : TFrom, TName],
   TSeparator
 >;
@@ -111,7 +111,7 @@ export class Relation<
     this.source = source;
     this.target = target;
     this.cardinality = cardinality;
-    this.path = createKeyPath(
+    this.path = createPathFromSegments(
       [source.name, name],
       pathSeparator
     ) as RelationPath<TSource, TName, TPathSeparator>;

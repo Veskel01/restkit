@@ -1,3 +1,6 @@
+// biome-ignore lint/suspicious/noExplicitAny: class can have any constructor
+export type ClassMetatype<T> = new (...args: any[]) => T;
+
 /**
  * Removes specified keys from an object type
  * @param T - The type of the object
@@ -96,3 +99,11 @@ export type MakeReadonly<T> = T extends Map<infer K, infer V>
         : T extends BuiltIn
           ? T
           : Readonly<T>;
+
+/**
+ * Extracts a property from a generic type
+ *
+ * @template T - The source type
+ * @template TKey - The property key to extract
+ */
+export type ExtractProperty<T, TKey extends keyof T> = T[TKey];

@@ -81,6 +81,11 @@ export type InferAttributeOutput<T extends AnyAttribute> = T['_output'];
 export type InferAttributeFlags<T extends AnyAttribute> = T['_flags'];
 
 /**
+ * Represents a map of attribute definitions.
+ */
+export type AttributeMap = Record<string, AnyAttribute>;
+
+/**
  * Represents a typed, configurable attribute used in resource definitions.
  *
  * An attribute encapsulates a type (e.g., string, number), constraints (e.g., optional, nullable),

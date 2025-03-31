@@ -1,3 +1,4 @@
+import { DEFAULT_PATH_SEPARATOR } from '../constants';
 import {
   type AnyRelation,
   Relation,
@@ -8,7 +9,7 @@ import {
 import type {
   AnyResource,
   GetResourceName,
-  InferResourceOutput,
+  InferResourceShape,
   ResourceMap
 } from '../models/resource';
 import type {
@@ -20,7 +21,7 @@ import {
   type CombinedResources,
   combineResources
 } from '../utils/combine-resources';
-import { DEFAULT_KEY_PATH_SEPARATOR, createKeyPath } from '../utils/key-path';
+import { createPathFromSegments } from '../utils/path';
 import { type AnyRelationConnection, RelationConnector } from './connector';
 
 /**
@@ -128,9 +129,9 @@ export type InferResourceWithRelations<
   TDepth extends number = 3,
   TVisitedPaths extends string = never
 > = TDepth extends 0
-  ? InferResourceOutput<TRelationsResult[TResourceName]['resource']>
+  ? InferResourceShape<TRelationsResult[TResourceName]['resource']>
   : RemoveNeverProperties<
-      InferResourceOutput<TRelationsResult[TResourceName]['resource']> & {
+      InferResourceShape<TRelationsResult[TResourceName]['resource']> & {
         [K in keyof TRelationsResult[TResourceName]['relations']]: `${RelationPath<TResourceName & string, K & string, string>}` extends TVisitedPaths
           ? never
           : TRelationsResult[TResourceName]['relations'][K] extends Relation<
@@ -157,8 +158,8 @@ export type InferResourceWithRelations<
                     | `${RelationPath<TResourceName & string, TRelName, TPathSeparator>}`
                   >[]
               : C extends RelationCardinality.ONE
-                ? InferResourceOutput<TTo> | null
-                : InferResourceOutput<TTo>[]
+                ? InferResourceShape<TTo> | null
+                : InferResourceShape<TTo>[]
             : never;
       }
     >;
@@ -243,7 +244,7 @@ export interface RelationGraphOptions<TPathSeparator extends string> {
 export class RelationGraph<
   TResourceMap extends ResourceMap,
   TRelations extends AnyConnectedRelations<TResourceMap>,
-  TPathSeparator extends string = typeof DEFAULT_KEY_PATH_SEPARATOR
+  TPathSeparator extends string = typeof DEFAULT_PATH_SEPARATOR
 > {
   public readonly relations: Readonly<TRelations>;
   private readonly adjacencyList: Map<string, Set<string>>;
@@ -253,7 +254,7 @@ export class RelationGraph<
     resourceMap: TResourceMap,
     connections: RelationConnectionMap<TResourceMap>,
     {
-      pathSeparator = DEFAULT_KEY_PATH_SEPARATOR as TPathSeparator
+      pathSeparator = DEFAULT_PATH_SEPARATOR as TPathSeparator
     }: RelationGraphOptions<TPathSeparator> = {}
   ) {
     this.options = {
@@ -530,7 +531,7 @@ export class RelationGraph<
 
     for (const [relationName, relation] of Object.entries(relations)) {
       const typedRelation = relation as AnyRelation;
-      const newPath = createKeyPath(
+      const newPath = createPathFromSegments(
         [currentPath, relationName],
         this.options.pathSeparator
       );

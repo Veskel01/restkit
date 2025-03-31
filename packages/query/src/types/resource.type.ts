@@ -1,10 +1,10 @@
-import type { AnyResource, PickAttributesByFlag } from '@restkit/core';
+import type { AnyResource, ResourcePathsByFlag } from '@restkit/core';
 
 export type ResourceSelectableFields<TResource extends AnyResource> =
-  PickAttributesByFlag<TResource, 'selectable'>;
+  ResourcePathsByFlag<TResource, 'selectable', true>;
 
 export type ResourceFilterableFields<TResource extends AnyResource> =
-  PickAttributesByFlag<TResource, 'filterable'>;
+  ResourcePathsByFlag<TResource, 'filterable', true>;
 
 export type ResourceSortableFields<TResource extends AnyResource> =
-  PickAttributesByFlag<TResource, 'sortable'>;
+  ResourcePathsByFlag<TResource, 'sortable', true>;

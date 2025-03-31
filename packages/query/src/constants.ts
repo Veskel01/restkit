@@ -1,3 +1,10 @@
+export enum QueryElementType {
+  SELECT = 'select',
+  FILTER = 'filter',
+  SORT = 'sort',
+  PAGINATION = 'pagination'
+}
+
 export enum FilterValueType {
   String = 'string',
   Number = 'number',
@@ -6,10 +13,9 @@ export enum FilterValueType {
   Array = 'array'
 }
 
-export enum QueryElementType {
-  SELECT = 'select',
-  FILTER = 'filter',
-  SORT = 'sort'
+export enum SortDirection {
+  ASC = 'asc',
+  DESC = 'desc'
 }
 
 export const FILTER_OPERATORS_MAP = {
@@ -72,4 +78,9 @@ export const FILTER_OPERATORS_MAP = {
   },
   patternMatch: { token: 'rgx', valueTypes: [FilterValueType.String] },
   notPatternMatch: { token: 'nrgx', valueTypes: [FilterValueType.String] }
+} as const;
+
+export const LOGICAL_FILTER_OPERATORS = {
+  and: 'and',
+  or: 'or'
 } as const;

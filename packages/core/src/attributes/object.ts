@@ -17,8 +17,10 @@ export type InferObjectAttributeShape<
   [K in keyof TShape]: InferAttributeOutput<TShape[K]>;
 };
 
+export type ObjectAttributeShape = Record<string, AnyAttribute>;
+
 export class ObjectAttribute<
-  TShape extends Record<string, AnyAttribute>
+  TShape extends ObjectAttributeShape
 > extends Attribute<
   AttributeType.Object,
   InferObjectAttributeShape<TShape>,

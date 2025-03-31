@@ -25,6 +25,6 @@ export class EnumAttribute<
 
 export function enumerable<
   const TValues extends readonly [string, ...string[]]
->(values: TValues): EnumAttribute<TValues> {
+>(...values: TValues): EnumAttribute<TValues> {
   return new EnumAttribute(values);
 }

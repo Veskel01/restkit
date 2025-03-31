@@ -16,12 +16,10 @@ export type SelectableFields<TResource extends AnyResource> =
   | typeof SELECT_ALL_FIELDS_OPERATOR
   | ResourceSelectableFields<TResource>[];
 
-export interface FieldSelectorMetadata<
+export type FieldSelectorMetadata<
   TResource extends AnyResource,
   TFields extends SelectableFields<TResource>
-> extends QueryElementMetadata<QueryElementType.SELECT> {
-  readonly selectedFields: TFields;
-}
+> = QueryElementMetadata<QueryElementType.SELECT, TFields>;
 
 /**
  * Query element responsible for defining which fields should be selected
@@ -40,7 +38,11 @@ export class FieldSelector<
   TResource extends AnyResource,
   TFields extends
     SelectableFields<TResource> = typeof SELECT_ALL_FIELDS_OPERATOR
-> extends QueryElement<TResource, FieldSelectorMetadata<TResource, TFields>> {
+> extends QueryElement<
+  TResource,
+  TFields,
+  FieldSelectorMetadata<TResource, TFields>
+> {
   readonly #selectedFields: TFields;
 
   public constructor(
@@ -54,7 +56,7 @@ export class FieldSelector<
   public getMetadata(): FieldSelectorMetadata<TResource, TFields> {
     return {
       type: QueryElementType.SELECT,
-      selectedFields: this.#selectedFields
+      value: this.#selectedFields
     };
   }
 
@@ -101,11 +103,12 @@ export class FieldSelector<
     const fields = [...new Set(args as ResourceSelectableFields<TResource>[])];
 
     for (const field of fields) {
-      if (!this.hasAttribute(field)) {
-        throw new Error(
-          `Field '${String(field)}' does not exist in resource '${this.resource.name}'`
-        );
-      }
+      // TODO
+      // if (!this.hasAttribute(field)) {
+      //   throw new Error(
+      //     `Field '${String(field)}' does not exist in resource '${this.resource.name}'`
+      //   );
+      // }
 
       if (!this.isAttributeFlagSet(field, 'selectable')) {
         throw new Error(

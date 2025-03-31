@@ -1,8 +1,9 @@
 import type { AnyResource, AttributeFlags } from '@restkit/core';
 import type { QueryElementType } from '../constants';
 
-export interface QueryElementMetadata<TType extends QueryElementType> {
+export interface QueryElementMetadata<TType extends QueryElementType, TValue> {
   type: TType;
+  value: TValue;
 }
 
 /**
@@ -14,7 +15,8 @@ export interface QueryElementMetadata<TType extends QueryElementType> {
  */
 export abstract class QueryElement<
   TResource extends AnyResource,
-  TMetadata extends QueryElementMetadata<QueryElementType>
+  TMetadataValue,
+  TMetadata extends QueryElementMetadata<QueryElementType, TMetadataValue>
 > {
   readonly #resource: TResource;
 
@@ -22,7 +24,7 @@ export abstract class QueryElement<
     this.#resource = resource;
   }
 
-  protected get resource(): TResource {
+  protected get resource(): Readonly<TResource> {
     return this.#resource;
   }
 
@@ -32,17 +34,6 @@ export abstract class QueryElement<
    * a format compatible with a backend API.
    */
   public abstract getMetadata(): TMetadata;
-
-  /**
-   * Checks if a field exists in the resource's attributes
-   * @param field The field name to check
-   * @returns True if the field exists in the resource's attributes
-   */
-  protected hasAttribute<K extends keyof TResource['attributes']>(
-    field: K
-  ): boolean {
-    return field in this.#resource.attributes;
-  }
 
   /**
    * Checks if a specific flag is set to `true` on a given attribute.
@@ -56,30 +47,20 @@ export abstract class QueryElement<
     TField extends keyof TResource['attributes'],
     TFlag extends keyof AttributeFlags
   >(field: TField, flag: TFlag): boolean {
-    if (!this.hasAttribute(field)) {
-      return false;
-    }
+    // TODo - implement this with nested paths handling
 
-    const attribute = this.#resource.attributes[field as never];
+    throw new Error('Not implemented');
 
-    if (!attribute) {
-      return false;
-    }
+    // if (!this.hasAttribute(field)) {
+    //   return false;
+    // }
 
-    return attribute._flags[flag] === true;
-  }
+    // const attribute = this.getAttribute(field);
 
-  /**
-   * Returns the names of all attributes that have a specific flag set to `true`.
-   *
-   * @param flag - The attribute flag to filter by
-   * @returns An array of attribute names with the specified flag enabled
-   */
-  protected getAttributesWithFlag<TFlag extends keyof AttributeFlags>(
-    flag: TFlag
-  ): Array<keyof TResource['attributes']> {
-    return Object.keys(this.#resource.attributes).filter((attribute) =>
-      this.isAttributeFlagSet(attribute, flag)
-    );
+    // if (!attribute) {
+    //   return false;
+    // }
+
+    // return attribute._flags[flag] === true;
   }
 }
