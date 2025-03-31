@@ -25,6 +25,27 @@ export interface SortSelectorMetadata<
   readonly sort: TSort;
 }
 
+export type MergeSortMapBehavior = 'replace' | 'merge';
+
+/**
+ * Query element responsible for defining sort order for a resource.
+ *
+ * Allows specifying sorting either for multiple fields using a map,
+ * or for a single field with direction.
+ *
+ *
+ * Extends the abstract {@link QueryElement} class and contributes a `sort` clause
+ * to the query metadata.
+ *
+ * @typeParam TResource - The resource type this selector applies to
+ * @typeParam TSort - The map of sortable fields and their directions
+ *
+ * @example
+ * const sort = new SortSelector(userResource)
+ *   .sortBy('createdAt', 'desc')
+ *   .sortBy({ name: 'asc' })
+ *   .sortBy('role', 'ASC')
+ */
 export class SortSelector<
   TResource extends AnyResource,
   TSort extends SortMap<TResource>
@@ -50,13 +71,15 @@ export class SortSelector<
   }
 
   /**
-   * Specifies the sort order for the query using a map of fields and directions.
+   * Specifies the sort order using a map of fields and directions.
    *
    * @example
-   * query.sortBy({ createdAt: 'desc', name: 'asc' });
+   * selector.sortBy({ name: 'asc', createdAt: 'desc' });
    *
-   * @param sort - An object mapping sortable field names to directions
-   * @returns A SortSelector instance representing the configured sort definition
+   * @param sort - Object mapping field names to directions (asc/desc)
+   * @returns A new SortSelector instance with the merged sort definition
+   *
+   * @throws Error if any field is not sortable
    */
   public sortBy<T extends SortInputMap<TResource>>(
     sort: T
@@ -71,11 +94,13 @@ export class SortSelector<
    * Specifies the sort order for a single field.
    *
    * @example
-   * query.sortBy('createdAt', 'desc');
+   * selector.sortBy('name', 'asc');
    *
-   * @param key - The field to sort by
-   * @param direction - The direction to sort (asc or desc)
-   * @returns A SortSelector instance representing the configured sort definition
+   * @param key - Field to sort by
+   * @param direction - Direction to sort (asc/desc or equivalent string)
+   * @returns A new SortSelector instance with the merged sort definition
+   *
+   * @throws Error if the field is not sortable
    */
   public sortBy<K extends ResourceSortableFields<TResource>>(
     key: K,
@@ -120,6 +145,12 @@ export class SortSelector<
     return new SortSelector(this.resource, this.mergeSortMap(sortMap));
   }
 
+  /**
+   * Normalizes a sort direction value (enum or string) into a `SortDirection` enum.
+   *
+   * @param dir - The raw sort direction
+   * @returns Normalized `SortDirection` enum value
+   */
   private normalizeSortDirection(
     dir: SortDirection | keyof typeof SortDirection
   ): SortDirection {
@@ -130,14 +161,40 @@ export class SortSelector<
     return SortDirection[dir];
   }
 
+  /**
+   * Validates if a given field is marked as sortable.
+   *
+   * @param field - Field name to check
+   * @returns `true` if the field is sortable
+   */
   private isFieldSortable(field: string): boolean {
     return this.isAttributeFlagSet(field, 'sortable');
   }
 
-  private mergeSortMap(sortMap: Record<string, SortDirection>): TSort {
-    return {
-      ...Object.fromEntries(this.#sortMap),
-      ...sortMap
-    } as TSort;
+  /**
+   * Merges the current sort map with new entries.
+   * New fields overwrite existing ones by default.
+   *
+   * @param sortMap - The additional sort map to merge
+   * @param duplicateBehavior - Determines whether to replace or keep existing fields
+   * @returns A new sort map (TSort) with merged values
+   */
+  private mergeSortMap(
+    sortMap: Record<string, SortDirection>,
+    duplicateBehavior: 'replace' | 'merge' = 'replace'
+  ): TSort {
+    const current = Object.fromEntries(this.#sortMap);
+
+    const merged = { ...current };
+
+    for (const [field, direction] of Object.entries(sortMap)) {
+      const alreadyExists = field in current;
+
+      if (duplicateBehavior === 'replace' || !alreadyExists) {
+        merged[field] = direction;
+      }
+    }
+
+    return merged as TSort;
   }
 }
