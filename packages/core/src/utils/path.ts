@@ -1,4 +1,5 @@
 import { DEFAULT_PATH_SEPARATOR } from '../constants';
+import type { DefaultPathSeparator } from '../types';
 
 /**
  * Represents a type-safe joined path from an array of string segments.
@@ -20,24 +21,9 @@ export type Path<
       ? `${U & string}${TSeparator}${Path<Rest extends string[] ? Rest : never, TSeparator>}`
       : never;
 
-/**
- * Creates a path string by joining segments with the specified separator.
- * This is a simpler, more direct approach than the accessor function.
- *
- * @param segments - Array of string segments that make up the path
- * @param separator - Separator to use when joining the segments (defaults to ".")
- * @returns A path string with the segments joined by the separator
- *
- * @example
- * // Returns "user.profile.id"
- * const path = createPathFromSegments(["user", "profile", "id"]);
- *
- * // Returns "user/profile/id"
- * const customPath = createPathFromSegments(["user", "profile", "id"], "/");
- */
 export function createPathFromSegments<
   const TSegments extends [string, ...string[]],
-  TSeparator extends string = typeof DEFAULT_PATH_SEPARATOR
+  TSeparator extends string = DefaultPathSeparator
 >(
   segments: TSegments,
   separator: TSeparator = DEFAULT_PATH_SEPARATOR as TSeparator

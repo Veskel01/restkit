@@ -1,11 +1,19 @@
 /**
- * The default separator used for key paths.
- * This is a type-safe constant that can be used to specify the separator
- * when creating key paths.
+ * The marker used to indicate that a key in literal type is an array.
+ */
+export const ARRAY_MARKER = '[]' as const;
+
+/**
+ * The marker used to indicate that a key in literal type is optional.
+ */
+export const OPTIONAL_MARKER = '?' as const;
+
+/**
+ * The default path separator used in resource paths.
  */
 export const DEFAULT_PATH_SEPARATOR = '.' as const;
 
 /**
- * The marker used to indicate an array in a path.
+ * The default maximum path depth used in resource paths.
  */
-export const ARRAY_MARKER = '[]' as const;
+export const DEFAULT_MAX_PATH_DEPTH = 5 as const;

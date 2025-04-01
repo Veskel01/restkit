@@ -42,3 +42,7 @@ yarn-error.log*
 .vitest
 
 .npmrc
+
+# TODO - remove these
+packages/core-v1
+packages/query-v1
